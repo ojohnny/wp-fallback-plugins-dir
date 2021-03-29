@@ -1,0 +1,14 @@
+{
+  "name": "ojohnny/wp-fallback-plugins-dir",
+  "description": "Load all wordpress plugins in directory unless already loaded",
+  "version": "1.0.0",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "WpFallbackPluginsDir\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=7.4"
+  }
+}
