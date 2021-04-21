@@ -81,10 +81,18 @@ class LoadPlugins
                         "/"
                     );
 
-                    $url = content_url(
-                        substr($fallback_plugins_path, strlen(WP_CONTENT_DIR)) .
-                            "/$relpath"
-                    );
+                    /* Handle case when path is inside a symlinked theme */
+                    $template_dir = realpath(get_template_directory());
+                    if (strpos($fallback_plugins_path, $template_dir) === 0) {
+                        $url = get_template_directory_uri() .
+                            substr($fallback_plugins_path, strlen($template_dir)) .
+                                "/$relpath";
+                    } else {
+                        $url = content_url(
+                            substr($fallback_plugins_path, strlen(WP_CONTENT_DIR)) .
+                                "/$relpath"
+                        );
+                    }
 
                     if ($path && is_string($path)) {
                         $url .= "/" . ltrim($path, "/");
