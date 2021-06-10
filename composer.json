@@ -1,7 +1,7 @@
 {
   "name": "ojohnny/wp-fallback-plugins-dir",
   "description": "Load all wordpress plugins in directory unless already loaded",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "autoload": {
     "psr-4": {

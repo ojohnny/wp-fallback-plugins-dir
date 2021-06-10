@@ -84,13 +84,19 @@ class LoadPlugins
                     /* Handle case when path is inside a symlinked theme */
                     $template_dir = realpath(get_template_directory());
                     if (strpos($fallback_plugins_path, $template_dir) === 0) {
-                        $url = get_template_directory_uri() .
-                            substr($fallback_plugins_path, strlen($template_dir)) .
-                                "/$relpath";
+                        $url =
+                            get_template_directory_uri() .
+                            substr(
+                                $fallback_plugins_path,
+                                strlen($template_dir)
+                            ) .
+                            "/$relpath";
                     } else {
                         $url = content_url(
-                            substr($fallback_plugins_path, strlen(WP_CONTENT_DIR)) .
-                                "/$relpath"
+                            substr(
+                                $fallback_plugins_path,
+                                strlen(WP_CONTENT_DIR)
+                            ) . "/$relpath"
                         );
                     }
 
@@ -127,10 +133,20 @@ class LoadPlugins
             return array_merge($active_plugins, $fallback_plugins);
         });
 
+        $should_do_plugins_loaded =
+            did_action("plugins_loaded") && !doing_action("plugins_loaded");
+
+        /* Don't trigger plugins_loaded actions a second time for normal plugins. */
+        if ($should_do_plugins_loaded) {
+            remove_all_actions("plugins_loaded");
+        }
+
         foreach ($fallback_plugin_files as $fallback_plugin_file) {
             include $fallback_plugin_file;
         }
 
-        do_action("plugins_loaded");
+        if ($should_do_plugins_loaded) {
+            do_action("plugins_loaded");
+        }
     }
 }
