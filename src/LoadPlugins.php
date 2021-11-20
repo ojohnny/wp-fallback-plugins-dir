@@ -1,6 +1,7 @@
 <?php
 
 namespace WpFallbackPluginsDir;
+use MatthiasMullie\PathConverter\Converter;
 
 class LoadPlugins
 {
@@ -11,15 +12,29 @@ class LoadPlugins
             "/"
         );
 
+        /* The plugins.php page outputs warnings when viewed on a
+         * multisite network unless the path is relative to
+         * WP_PLUGIN_DIR. */
+        $converter = new Converter($fallback_plugins_path, WP_PLUGIN_DIR);
+
         if (!function_exists("get_plugin_data")) {
             require_once ABSPATH . "/wp-admin/includes/plugin.php";
         }
 
         $active_and_valid_plugins = wp_get_active_and_valid_plugins();
         $active_network_plugins = is_multisite()
-            ? wp_get_active_and_valid_plugins()
+            ? wp_get_active_network_plugins()
             : [];
-        $active_plugins = get_option("active_plugins", []);
+
+        /* Normalize the plugin names to be relative to a plugins directory. */
+        $active_plugins = array_map(function ($path) {
+            $file = basename($path);
+            $dir = basename(dirname($path));
+            if ($file === $path || $dir === "plugins") {
+                return $path;
+            }
+            return "{$dir}/{$file}";
+        }, get_option("active_plugins", []));
 
         $fallback_plugins = [];
         $fallback_plugin_data = [];
@@ -33,9 +48,9 @@ class LoadPlugins
                 $file,
                 strlen($fallback_plugins_path . "/")
             );
-            $fallback_plugin_id = "fallback-plugin/{$plugin_relpath}";
 
-            if (in_array($fallback_plugin_id, $active_plugins)) {
+            /* $active_plugins is normalized to 'relpath' */
+            if (in_array($plugin_relpath, $active_plugins)) {
                 /* Plugin already loaded as a fallback */
                 continue;
             }
@@ -62,11 +77,13 @@ class LoadPlugins
 
             $plugin = get_plugin_data($file);
 
+            $file_rel_plugin_dir = $converter->convert($plugin_relpath);
+
             if (!empty($plugin["Name"])) {
                 /* We should load this plugin */
                 $fallback_plugin_files[] = $file;
-                $fallback_plugin_data[$fallback_plugin_id] = $plugin;
-                $fallback_plugins[] = $fallback_plugin_id;
+                $fallback_plugin_data[$file_rel_plugin_dir] = $plugin;
+                $fallback_plugins[] = $file_rel_plugin_dir;
             }
         }
 
@@ -114,6 +131,12 @@ class LoadPlugins
         add_filter("all_plugins", function ($plugins) use (
             $fallback_plugin_data
         ) {
+            /* Hide the fallback plugins from the Network Plugins screen,
+             * as they are not necessarily available to all sites. */
+            $current_screen = get_current_screen();
+            if ($current_screen && $current_screen->in_admin("network")) {
+                return $plugins;
+            }
             return array_merge($plugins, $fallback_plugin_data);
         });
 
